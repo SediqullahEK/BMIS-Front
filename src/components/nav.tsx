@@ -14,7 +14,7 @@ export default function Navbar() {
             <div className="container mx-auto px-4">
                 <div className="flex items-center justify-start h-16">
                     <Link href="/" className="text-2xl font-bold text-slate-100 hover:text-white transition">
-                        BMIS
+                        Booking Managment System
                     </Link>
 
                     {navLinks.map((link) => {
