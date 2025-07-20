@@ -217,7 +217,7 @@ export default function BookForm({ initialData, onSubmit, isLoading , onClose}: 
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="px-4 py-2 bg-teal-900 text-white rounded-md disabled:bg-blue-300"
+                    className="px-4 py-2 bg-teal-900 text-white rounded-md disabled:bg-blue-300 cursor-pointer"
                 >
                     {isLoading ? 'Saving...' : 'Save'}
                 </button>
