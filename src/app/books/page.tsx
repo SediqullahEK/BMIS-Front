@@ -48,6 +48,7 @@ export default function Books() {
     
 
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
     // --- NEW: State for pagination ---
     const [currentPage, setCurrentPage] = useState(0); // API is 0-indexed
@@ -63,6 +64,15 @@ export default function Books() {
             return () => clearTimeout(timer);
         }
     }, [successMessage]);
+
+    useEffect(() => {
+        if (warningMessage) {
+            const timer = setTimeout(() => {
+                setWarningMessage(null);
+            }, 3000); // Hide after 3 seconds
+            return () => clearTimeout(timer);
+        }
+    }, [warningMessage]);
 
 
     // --- DATA FETCHING & HANDLERS ---
@@ -225,7 +235,9 @@ export default function Books() {
             }
 
             // Remove the book from the list immutably
+            setWarningMessage("Book deleted successfully!");
             setBooks((prevBooks) => prevBooks.filter((book) => book.id !== bookId));
+
         } catch (err: any) {
             alert(err.message);
         }
@@ -247,10 +259,18 @@ export default function Books() {
     return (
         <div className="container mx-auto p-6">
             {successMessage && (
-                <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
+                <div className="fixed inset-0 z-50 flex items-start justify-center pt-10">
                     {/* This is the visible alert box */}
                     <div className="bg-green-800 text-white py-3 px-5 rounded-lg shadow-lg animate-fade-in-down">
                         {successMessage}
+                    </div>
+                </div>
+            )}
+            {warningMessage && (
+                <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
+                    {/* This is the visible alert box */}
+                    <div className="bg-red-900 text-white py-3 px-5 rounded-lg shadow-lg animate-fade-in-down">
+                        {warningMessage}
                     </div>
                 </div>
             )}
