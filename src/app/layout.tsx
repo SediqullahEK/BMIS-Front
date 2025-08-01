@@ -1,6 +1,7 @@
 
-import Navbar from "@/components/nav";
+import Navbar from "@/components/navbar";
 import './styles.css';
+import '../lib/fontawesome'
 
 export const metadata = {
   title: 'Next.js',
