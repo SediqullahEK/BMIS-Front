@@ -54,7 +54,7 @@ export default function Publishers() {
             }
         };
         fetchPublishers();
-    }, []);
+    }, [currentPage]);
 
     const handleNextPage = () => {
         if (currentPage < totalPages - 1) {

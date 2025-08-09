@@ -54,7 +54,7 @@ export default function Genres() {
             }
         };
         fetchGenres();
-    }, []);
+    }, [currentPage]);
 
     const handleNextPage = () => {
         if (currentPage < totalPages - 1) {
