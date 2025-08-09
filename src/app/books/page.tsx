@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
 import Modal from "@/components/ui/modal";
 import BookForm from "@/components/books/bookForm";
+import LoadingOverlay from "@/components/ui/LoadingOverlay";
 
 type Book = {
     id: number;
@@ -45,15 +46,21 @@ export default function Books() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [editingBook, setEditingBook] = useState<Book | null>(null);
     const [deletingBookId, setDeletingBookId] = useState<string | null>(null);
-    
+
 
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
-    // --- NEW: State for pagination ---
-    const [currentPage, setCurrentPage] = useState(0); // API is 0-indexed
+
+    const booksPerPage = 5;
+    const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-    const booksPerPage = 5; // Or any size you prefer
+
+
+    const apiBookListUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/books/list?page=${currentPage}&size=${booksPerPage}`;
+    const apiGenreListUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/genres/all`;
+    const apiPublisherListUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/publishers/all`;
+
 
     //success alert time out effect
     useEffect(() => {
@@ -77,19 +84,17 @@ export default function Books() {
 
     // --- DATA FETCHING & HANDLERS ---
 
-    // Effect to fetch all books on initial component mount
     useEffect(() => {
         const fetchBooks = async () => {
             setIsListLoading(true);
             try {
-                // Construct URL with page and size parameters
-                const response = await fetch(`http://localhost:8082/api/books/list?page=${currentPage}&size=${booksPerPage}`);
+                const response = await fetch(apiBookListUrl);
                 if (!response.ok) throw new Error('Failed to fetch books.');
 
                 const data = await response.json();
-                console.log(data); // Log the response for debugging
-                setBooks(data.content); // The books are in the 'content' field
-                setTotalPages(data.totalPages); // Get total pages from the response
+                console.log(data);
+                setBooks(data.content);
+                setTotalPages(data.totalPages);
             } catch (err: any) {
                 setListError(err.message);
             } finally {
@@ -104,7 +109,9 @@ export default function Books() {
     useEffect(() => {
         const fetchGenres = async () => {
             try {
-                const response = await fetch('http://localhost:8082/api/genres/list');
+
+                const response = await fetch(apiGenreListUrl);
+                console.log("Genre response", response);
                 if (!response.ok) throw new Error('Failed to fetch genres');
                 const data = await response.json();
 
@@ -116,11 +123,11 @@ export default function Books() {
         };
         fetchGenres();
     }, []);
-    //effect to fetch publishers
+
     useEffect(() => {
         const fetchGenres = async () => {
             try {
-                const response = await fetch('http://localhost:8082/api/publishers/list');
+                const response = await fetch(apiPublisherListUrl);
                 if (!response.ok) throw new Error('Failed to fetch publishers');
                 const data = await response.json();
 
@@ -132,23 +139,20 @@ export default function Books() {
         fetchGenres();
     }, []);
 
-    // Re-run this effect whenever 'currentPage' changes
-    // --- NEW: Handlers for pagination controls ---
+
     const handleNextPage = () => {
-        // Go to the next page if we're not on the last page
         if (currentPage < totalPages - 1) {
             setCurrentPage(currentPage + 1);
         }
     };
 
     const handlePrevPage = () => {
-        // Go to the previous page if we're not on the first page
         if (currentPage > 0) {
             setCurrentPage(currentPage - 1);
         }
     };
 
-    // Handlers to open modals and clear previous form errors
+
     const handleOpenCreateModal = () => {
         setFormError(null); // Clear any previous errors
         setIsCreateModalOpen(true);
@@ -156,7 +160,7 @@ export default function Books() {
 
     const handleOpenEditModal = (book: Book) => {
         setEditingBook(book);
-        setFormError(null); // Clear any previous errors
+        setFormError(null);
         setIsEditModalOpen(true);
     };
     const handleOpenDeleteModal = (id: string) => {
@@ -168,7 +172,9 @@ export default function Books() {
     const handleCreateSubmit = async (data: any) => {
         setIsSubmitting(true);
         setFormError(null);
+        setIsListLoading(true);
         try {
+
             const response = await fetch('http://localhost:8082/api/books/store', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -184,17 +190,19 @@ export default function Books() {
             setBooks((prevBooks) => [...prevBooks, newBook]);
             setIsCreateModalOpen(false);
             setSuccessMessage("Book created successfully!");
+
         } catch (err: any) {
             setFormError(err.message);
         } finally {
             setIsSubmitting(false);
+            setIsListLoading(false);
         }
     };
 
     // Handle book editing submission
     const handleEditSubmit = async (data: any) => {
         if (!editingBook) return;
-
+        setIsListLoading(true);
         setIsSubmitting(true);
         setFormError(null);
         try {
@@ -209,16 +217,17 @@ export default function Books() {
             }
 
             const updatedBook = await response.json();
-            // Update the specific book in the list immutably
             setBooks((prevBooks) =>
                 prevBooks.map((book) => (book.id === updatedBook.id ? updatedBook : book))
             );
             setIsEditModalOpen(false);
             setSuccessMessage("Book updated successfully!");
+
         } catch (err: any) {
             setFormError(err.message);
         } finally {
             setIsSubmitting(false);
+            setIsListLoading(false);
         }
     };
 
@@ -226,6 +235,7 @@ export default function Books() {
     const handleDelete = async (bookId: number) => {
 
         try {
+            setIsListLoading(true);
             const response = await fetch(`http://localhost:8082/api/books/delete/${bookId}`, {
                 method: 'Get',
             });
@@ -240,14 +250,15 @@ export default function Books() {
 
         } catch (err: any) {
             alert(err.message);
+        } finally {
+            setIsListLoading(false);
         }
     };
 
     // --- RENDER LOGIC ---
-
-    // Initial loading state for the whole page
+    //loading
     if (isListLoading) {
-        return <div className="text-center p-10 text-white">Loading books...</div>;
+        return <LoadingOverlay loadingText="Fetching Books..." />;
     }
 
     // Error state if the initial fetch fails
@@ -255,7 +266,6 @@ export default function Books() {
         return <div className="text-center p-10 text-red-500">Error: {listError}</div>;
     }
 
-    // Main component render
     return (
         <div className="container mx-auto p-6">
             {successMessage && (
@@ -293,7 +303,7 @@ export default function Books() {
                     error={formError} // Pass the form-specific error
                 />
             </Modal>
-
+            {/* Delete MODAL */}
             <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Delete Book">
                 <p className="text-lg text-slate-200">Are you sure you want to delete this book?</p>
                 <div className="mt-4 flex justify-end space-x-2">
@@ -306,7 +316,7 @@ export default function Books() {
                     <button
                         onClick={() => {
                             if (deletingBookId) {
-                                handleDelete(deletingBookId);
+                                handleDelete(Number(deletingBookId));
                                 setIsDeleteModalOpen(false);
                             }
                         }}
@@ -366,7 +376,7 @@ export default function Books() {
                                     </button>
                                     <span className="text-white">|</span>
                                     <button
-                                        onClick={() => handleOpenDeleteModal(book.id)}
+                                        onClick={() => handleOpenDeleteModal(book.id.toString())}
                                         className="text-rose-800 hover:text-slate-100 ml-2 cursor-pointer text-xl"
                                         aria-label={`Delete ${book.title}`}
                                     >

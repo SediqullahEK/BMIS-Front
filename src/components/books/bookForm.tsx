@@ -40,57 +40,74 @@ export type BookFormProps = {
     onSubmit: (data: BookFormData) => void;
     isLoading: boolean;
     onClose: () => void;
+   
 };
 
-export default function BookForm({ initialData, onSubmit, isLoading , onClose}: BookFormProps) {
+export default function BookForm({ initialData, onSubmit, isLoading, onClose }: BookFormProps) {
     const [title, setTitle] = useState<string>(initialData?.title || '');
     const [author, setAuthor] = useState<string>(initialData?.author || '');
 
-    const [selectedGenre, setSelectedGenre] = useState<GenreOption | null>(
-        initialData
-            ? { value: initialData.genreId, label: initialData.genreName }
-            : null
-    );
+    const [selectedGenre, setSelectedGenre] = useState<GenreOption | null>(null);
+
+    // Do the same for the publisher
+    const [selectedPublisher, setSelectedPublisher] = useState<PublisherOption | null>(null);
     const [genreOptions, setGenreOptions] = useState<GenreOption[]>([]);
 
-    const [selectedPublisher, setSelectedPublisher] = useState<PublisherOption | null>(
-        initialData
-            ? { value: initialData.publisherId, label: initialData.publisherName }
-            : null
-    );
     const [publisherOptions, setPublisherOptions] = useState<PublisherOption[]>([]);
-
     useEffect(() => {
         const fetchGenres = async () => {
             try {
-                const response = await fetch('http://localhost:8082/api/genres/list');
+                const response = await fetch('http://localhost:8082/api/genres/all');
                 if (!response.ok) throw new Error('Failed to fetch genres');
                 const data: RawGenre[] = await response.json();
                 // Map to react-select options
                 const options = data.map((g) => ({ value: g.id, label: g.name }));
                 setGenreOptions(options);
-                console.log('Fetched genres:', options);
+                
             } catch (error) {
                 console.error('Error fetching genres:', error);
             }
         };
         fetchGenres();
     }, []);
+
     useEffect(() => {
-        const fetchGenres = async () => {
+        const fetchPublishers = async () => {
             try {
-                const response = await fetch('http://localhost:8082/api/publishers/list');
+                const response = await fetch('http://localhost:8082/api/publishers/all');
                 if (!response.ok) throw new Error('Failed to fetch publishers');
-                const data: RawGenre[] = await response.json();
-                // Map to react-select options
+                const data: RawPublisher[] = await response.json();
+
                 const options = data.map((p) => ({ value: p.id, label: p.name }));
                 setPublisherOptions(options);
             } catch (error) {
                 console.error('Error fetching publishers:', error);
             }
         };
-        fetchGenres();
+        fetchPublishers();
     }, []);
+
+    useEffect(() => {
+        
+        if (initialData && genreOptions.length > 0) {
+            const genreToSelect = genreOptions.find(
+                (option) => option.value === initialData.genreId
+            );
+            if (genreToSelect) {
+                setSelectedGenre(genreToSelect);
+            }
+        }
+
+        if (initialData && publisherOptions.length > 0) {
+            const publisherToSelect = publisherOptions.find(
+                (option) => option.value === initialData.publisherId
+            );
+            if (publisherToSelect) {
+                setSelectedPublisher(publisherToSelect);
+            }
+        }
+
+    }, [initialData, genreOptions, publisherOptions]);
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -179,11 +196,11 @@ export default function BookForm({ initialData, onSubmit, isLoading , onClose}: 
                     Publisher <span className="text-red-600">*</span>
                 </label>
                 <Select<PublisherOption, false>
-                    inputId="genre"
+                    inputId="publisher"
                     options={publisherOptions}
                     value={selectedPublisher}
                     onChange={(opt: SingleValue<PublisherOption>) => setSelectedPublisher(opt)}
-                    placeholder="Select a genre..."
+                    placeholder="Select a publisher..."
                     isClearable
                     className="react-select-container"
                     classNamePrefix="react-select"
@@ -221,7 +238,7 @@ export default function BookForm({ initialData, onSubmit, isLoading , onClose}: 
                 >
                     {isLoading ? 'Saving...' : 'Save'}
                 </button>
-      
+
             </div>
         </form>
     );
