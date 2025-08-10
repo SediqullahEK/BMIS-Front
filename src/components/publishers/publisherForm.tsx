@@ -2,25 +2,20 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 
-interface RawGenre {
-    id: number;
-    name: string;
-}
-
-export type GenreFormData = {
+export type PublisherFormData = {
     id?: number;
     name: string;
 };
 
-export type GenreFormProps = {
-    initialData?: GenreFormData;
-    onSubmit: (data: GenreFormData) => void;
+export type PublisherFormProps = {
+    initialData?: PublisherFormData;
+    onSubmit: (data: PublisherFormData) => void;
     isLoading: boolean;
     onClose: () => void;
    
 };
 
-export default function GenreForm({ initialData, onSubmit, isLoading, onClose }: GenreFormProps) {
+export default function PublisherForm({ initialData, onSubmit, isLoading, onClose }: PublisherFormProps) {
     const [name, setName] = useState<string>(initialData?.name || '');
    
 

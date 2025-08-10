@@ -1,5 +1,7 @@
 "use client"
+import GenreForm from "@/components/genres/genreForm";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
+import Modal from "@/components/ui/modal";
 import { faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
@@ -36,7 +38,7 @@ export default function Genres() {
 
     const apiGenreListUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/genres/list?page=${currentPage}&size=${genresPerPage}`;
 
-     useEffect(() => {
+    useEffect(() => {
         const fetchGenres = async () => {
             setIsListLoading(true);
             try {
@@ -49,13 +51,99 @@ export default function Genres() {
             } catch (error) {
                 console.error('Error fetching publishers:', error);
             }
-            finally{
+            finally {
                 setIsListLoading(false)
             }
         };
         fetchGenres();
     }, [currentPage]);
 
+    // Handle Genre creation submission
+    const handleCreateSubmit = async (data: any) => {
+        setIsSubmitting(true);
+        setFormError(null);
+        setIsListLoading(true);
+        try {
+
+            const response = await fetch('http://localhost:8082/api/genres/store', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+            if (!response.ok) {
+                throw new Error('Failed to create the genre. Please check your input.');
+            }
+            const newGenre = await response.json();
+            setGenres((prevGenres) => [...prevGenres, newGenre]);
+            setIsCreateModalOpen(false);
+            setSuccessMessage("Genre created successfully!");
+
+        } catch (err: any) {
+            setFormError(err.message);
+        } finally {
+            setIsSubmitting(false);
+            setIsListLoading(false);
+        }
+    };
+
+    // Handle Genre editing submission
+    const handleEditSubmit = async (data: any) => {
+        if (!editingGenre) return;
+        setIsListLoading(true);
+        setIsSubmitting(true);
+        setFormError(null);
+        try {
+            const response = await fetch(`http://localhost:8082/api/genres/update/${editingGenre.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update the genre.');
+            }
+
+            const updatedGenre = await response.json();
+            setGenres((prevGenres) =>
+                prevGenres.map((genre) => (genre.id === updatedGenre.id ? updatedGenre : genre))
+            );
+            setIsEditModalOpen(false);
+            setSuccessMessage("Genre updated successfully!");
+
+        } catch (err: any) {
+            setFormError(err.message);
+        } finally {
+            setIsSubmitting(false);
+            setIsListLoading(false);
+        }
+    };
+
+    // Handle Genre deletion
+    const handleDelete = async (genreId: number) => {
+
+        try {
+            setIsListLoading(true);
+            const response = await fetch(`http://localhost:8082/api/genres/delete/${genreId}`, {
+                method: 'Get',
+            });
+
+            if (!response.ok) {
+                setWarningMessage("Unable to delete the Genre!");
+                return;
+            }
+
+            // Remove the genre from the list immutably
+            setWarningMessage("Genre deleted successfully!");
+            setGenres((prevGenres) => prevGenres.filter((genre) => genre.id !== genreId));
+
+        } catch (err: any) {
+            setWarningMessage("Unable to delete the Genre!");
+        } finally {
+            setIsListLoading(false);
+        }
+    };
+
+    // Pagination Handling
     const handleNextPage = () => {
         if (currentPage < totalPages - 1) {
             setCurrentPage(currentPage + 1);
@@ -67,7 +155,6 @@ export default function Genres() {
             setCurrentPage(currentPage - 1);
         }
     };
-
 
     const handleOpenCreateModal = () => {
         setFormError(null);
@@ -114,15 +201,69 @@ export default function Genres() {
 
     return (
         <div className="container mx-auto p-6">
+            {successMessage && (
+                <div className="fixed inset-0 z-50 flex items-start justify-center pt-10">
+                    <div className="bg-green-800 text-white py-3 px-5 rounded-lg shadow-lg animate-fade-in-down">
+                        {successMessage}
+                    </div>
+                </div>
+            )}
+            {warningMessage && (
+                <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
+                    <div className="bg-red-900 text-white py-3 px-5 rounded-lg shadow-lg animate-fade-in-down">
+                        {warningMessage}
+                    </div>
+                </div>
+            )}
+            <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Add New Genre">
+                <GenreForm
+                    onSubmit={handleCreateSubmit}
+                    isLoading={isSubmitting}
+                    error={formError} // Pass the form-specific error
+                />
+            </Modal>
+
+            {/* EDIT MODAL */}
+            <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Genre">
+                <GenreForm
+                    initialData={editingGenre}
+                    onSubmit={handleEditSubmit}
+                    isLoading={isSubmitting}
+                    error={formError} // Pass the form-specific error
+                />
+            </Modal>
             <header className="flex items-center justify-between mb-6">
                 <h1 className="text-4xl font-extrabold text-white">Genre List</h1>
                 <button
-                    // onClick={handleOpenCreateModal}
+                    onClick={handleOpenCreateModal}
                     className="text-4xl font-bold text-white bg-teal-900 hover:bg-teal-700 cursor-pointer focus:ring-2 focus:ring-sky-500 rounded px-3 pb-2 transition"
                 >
                     +
                 </button>
             </header>
+            {/* Delete MODAL */}
+            <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Delete Genre">
+                <p className="text-lg text-slate-200">Are you sure you want to delete this genre?</p>
+                <div className="mt-4 flex justify-end space-x-2">
+                    <button
+                        onClick={() => setIsDeleteModalOpen(false)}
+                        className="px-4 py-2 bg-zinc-700 text-white rounded hover:bg-[#033112be] transition cursor-pointer"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={() => {
+                            if (deletingGenreId) {
+                                handleDelete(Number(deletingGenreId));
+                                setIsDeleteModalOpen(false);
+                            }
+                        }}
+                        className="px-4 py-2 bg-red-900 text-white rounded hover:bg-red-800 transition cursor-pointer"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </Modal >
 
             <div className="overflow-x-auto bg-[#141f2f] shadow rounded-lg">
                 <table className="min-w-full divide-y divide-sky-950">

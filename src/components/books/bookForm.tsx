@@ -69,7 +69,7 @@ export default function BookForm({ initialData, onSubmit, isLoading, onClose }: 
             }
         };
         fetchGenres();
-    }, []);
+    }, [genreOptions]);
 
     useEffect(() => {
         const fetchPublishers = async () => {
@@ -85,7 +85,7 @@ export default function BookForm({ initialData, onSubmit, isLoading, onClose }: 
             }
         };
         fetchPublishers();
-    }, []);
+    }, [publisherOptions]);
 
     useEffect(() => {
         
